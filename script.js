@@ -136,13 +136,15 @@ function renderPit(i) {
 
 function labelIdx(i) { return i < 7 ? i + 1 : (14 - i); }
 
+// NEW: non-sticky interactivity (no native disabled attr)
 function reflectInteractivity() {
   $$(".pit").forEach(p => {
     const idx = +p.dataset.idx;
     const enabled = isMine(idx) && S.pits[idx] > 0 && !S.locking && !gameOver();
     p.classList.toggle("enabled", enabled);
     p.classList.toggle("disabled", !enabled);
-    p.disabled = !enabled;
+    p.tabIndex = enabled ? 0 : -1;
+    p.setAttribute("aria-disabled", String(!enabled));
   });
 }
 
@@ -164,29 +166,40 @@ function renderCountsOnly() {
 }
 
 // --- Gameplay --------------------------------------------------------------
+// NEW: try/finally guarantees unlocking, handles AI no-move case
 async function tryPlay(i) {
   if (S.locking) return;
   if (!isMine(i) || S.pits[i] === 0) return;
 
   pushHist();
   S.locking = true;
-  await animatedMove(i);
+  try {
+    await animatedMove(i);
 
-  if (gameOver()) {
-    finalize();
-    S.locking = false;
+    if (gameOver()) {
+      finalize();
+      render();
+      return;
+    }
+
+    // Switch player
+    S.player = S.player === "A" ? "B" : "A";
     render();
-    return;
-  }
 
-  S.player = S.player === "A" ? "B" : "A";
-  render();
-  S.locking = false;
-
-  if (S.ai && S.player === "B") {
-    await sleep(350);
-    const mv = pickAiMove();
-    if (mv != null) await tryPlay(mv);
+    // AI turn (if enabled). If AI has no move, finalize so UI doesn't look "stuck".
+    if (S.ai && S.player === "B") {
+      await sleep(350);
+      const mv = pickAiMove();
+      if (mv != null) {
+        await tryPlay(mv);
+      } else if (gameOver()) {
+        finalize();
+        render();
+      }
+    }
+  } finally {
+    S.locking = false;
+    reflectInteractivity();
   }
 }
 
