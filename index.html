@@ -1,104 +1,106 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Pallanguzhi (Ali Guli Mane) — Web</title>
-  <meta name="description" content="A polished web version of the South Indian traditional game Pallanguzhi (Ali Guli Mane).">
-  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Pallanguzhi — Animated Edition</title>
+  <meta name="description" content="Animated, playable web version of Pallanguzhi (Ali Guli Mane)."/>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml"/>
+  <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
-  <header class="app-header">
-    <h1>Pallanguzhi <span class="muted">Ali Guli Mane</span></h1>
-    <div class="controls">
-      <button id="btnNew" class="primary">New Match</button>
-      <button id="btnRules">Rules</button>
-      <button id="btnUndo" title="Undo last move">Undo</button>
-      <button id="btnRedo" title="Redo move">Redo</button>
-      <label class="toggle">
-        <input type="checkbox" id="chkAi" />
-        <span>Play vs AI</span>
-      </label>
-      <label class="toggle">
-        <input type="checkbox" id="chkSound" checked />
-        <span>Sound</span>
-      </label>
-    </div>
-  </header>
+<header class="appbar">
+  <h1>Pallanguzhi <span class="sub">Ali Guli Mane</span></h1>
+  <nav class="toolbar">
+    <button id="newGame" class="btn primary">New Match</button>
+    <button id="showHelp" class="btn">How to Play</button>
+    <button id="undo" class="btn" title="Undo">Undo</button>
+    <button id="redo" class="btn" title="Redo">Redo</button>
+    <label class="switch"><input id="ai" type="checkbox"/><span>AI (B)</span></label>
+    <label class="switch"><span>Speed</span>
+      <select id="speed">
+        <option value="350">Slow</option>
+        <option value="220" selected>Normal</option>
+        <option value="120">Fast</option>
+        <option value="60">Turbo</option>
+      </select>
+    </label>
+  </nav>
+</header>
 
-  <main>
-    <section class="status">
-      <div id="statusText">Player A to move</div>
-      <div class="scores">
-        <div class="score-card a">A Captured: <span id="scoreA">0</span></div>
-        <div class="score-card b">B Captured: <span id="scoreB">0</span></div>
-      </div>
-    </section>
-
-    <section class="board" id="board" aria-label="Pallanguzhi board" role="application" tabindex="0">
-      <!-- Board will be rendered here -->
-    </section>
-
-    <section class="panel">
-      <div class="selects">
-        <label>Seeds per pit:
-          <select id="selSeeds">
+<main class="container">
+  <section class="left">
+    <div class="panel">
+      <div class="row">
+        <label>Seeds per pit
+          <select id="seeds">
             <option value="4">4</option>
             <option value="5" selected>5</option>
             <option value="6">6</option>
           </select>
         </label>
-        <label>Ruleset:
-          <select id="selRules">
-            <option value="classic" selected>Classic (capture opposite on empty)</option>
-            <option value="southern">Southern variant (no capture, chain sow)</option>
+        <label>Ruleset
+          <select id="rules">
+            <option value="classic" selected>Classic (empty-on-own capture)</option>
+            <option value="southern">Southern (no capture)</option>
           </select>
         </label>
-        <label>First player:
-          <select id="selFirst">
-            <option value="A" selected>A</option>
-            <option value="B">B</option>
+        <label>First player
+          <select id="first">
+            <option value="A" selected>A (bottom)</option>
+            <option value="B">B (top)</option>
           </select>
         </label>
       </div>
-      <details>
-        <summary>About this game</summary>
-        <p>
-          Pallanguzhi (also called Ali Guli Mane in Karnataka or Pallankuzhi in Tamil Nadu) is a traditional two-row mancala game. This web version is built for a gameathon submission and is fully playable on desktop and mobile.
-        </p>
-      </details>
-    </section>
-  </main>
+      <div class="status">
+        <div id="turnBadge" class="badge a">A to move</div>
+        <div class="scores">
+          <div class="score a">A: <span id="scoreA">0</span></div>
+          <div class="score b">B: <span id="scoreB">0</span></div>
+        </div>
+      </div>
+    </div>
 
-  <footer>
-    <small>
-      © 2025 ItsAtul Gameathon — Built with vanilla JS. 
-      <a href="https://vercel.com" target="_blank" rel="noreferrer">Deployable on Vercel</a>.
-    </small>
-  </footer>
+    <div class="boardWrap">
+      <div id="board" class="board" role="application" aria-label="Pallanguzhi board"></div>
+      <div id="flyLayer" class="flyLayer" aria-hidden="true"></div>
+      <div class="legend">
+        <span class="hint">Click pits on your row • Keyboard: 1–7 • Watch coins animate pit by pit</span>
+      </div>
+    </div>
+  </section>
 
-  <audio id="sowSound" src="assets/sow.mp3" preload="auto"></audio>
-  <audio id="captureSound" src="assets/capture.mp3" preload="auto"></audio>
-  <audio id="endSound" src="assets/end.mp3" preload="auto"></audio>
-
-  <dialog id="dlgRules">
-    <h2>Pallanguzhi — Rules</h2>
-    <div class="rules">
+  <aside class="right">
+    <div class="panel help">
+      <h2>Quick Start</h2>
       <ol>
-        <li>The board has 2 rows × 7 pits. Each pit starts with N seeds (choose 4/5/6).</li>
-        <li>Players take turns. On your turn, pick a pit on <strong>your row</strong>, collect all seeds, and sow them one by one into subsequent pits counter-clockwise.</li>
-        <li><strong>Relay sowing:</strong> If your last seed lands in a pit that was not empty, immediately pick up all seeds in that pit and continue sowing.</li>
-        <li><strong>Classic capture:</strong> If your last seed lands in an empty pit on your row, capture all seeds directly opposite in the other row. Your turn ends after a capture. (Southern variant disables capture.)</li>
-        <li>If you have no legal move (all your pits are empty), the game ends. Remaining seeds on the board go to the opponent's capture.</li>
-        <li>Winner is the player with the most captured seeds. Ties are possible.</li>
+        <li>Two rows of 7 pits. Bottom is A, top is B.</li>
+        <li>On your turn, click one of your pits to pick and sow seeds counter-clockwise.</li>
+        <li>If the last seed lands in a non-empty pit, you keep sowing (relay sow).</li>
+        <li>Classic rule: if your last seed lands in an empty pit on your row, capture the opposite pit.</li>
+        <li>Game ends when a player has no move. Highest captured wins.</li>
       </ol>
     </div>
-    <form method="dialog">
-      <button class="primary">Close</button>
-    </form>
-  </dialog>
+  </aside>
+</main>
 
-  <script src="script.js"></script>
+<footer class="footer">
+  <small>© Pallanguzhi Web — Animated Edition • MIT • Vercel-ready static site</small>
+</footer>
+
+<dialog id="helpDialog">
+  <article class="dialog">
+    <h3>How to Play Pallanguzhi</h3>
+    <ul>
+      <li>Pick a pit on <b>your row</b>, sow one by one counter-clockwise.</li>
+      <li><b>Relay:</b> land on a non-empty pit → pick up and continue.</li>
+      <li><b>Capture (Classic):</b> land on an empty pit on your row → capture opposite pit and end turn.</li>
+      <li>No legal move? Remaining seeds go to the opponent.</li>
+    </ul>
+    <form method="dialog"><button class="btn primary">Got it</button></form>
+  </article>
+</dialog>
+
+<script src="script.js"></script>
 </body>
 </html>
